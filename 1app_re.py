@@ -3,7 +3,7 @@ import pandas as pd
 import re
 
 def parse_sql_columns(sql_query):
-    # Remove comments
+    # Remove SQL single-line comments
     sql_query = re.sub(r'--.*$', '', sql_query, flags=re.MULTILINE)
 
     # Extract the SELECT clause (everything after SELECT until the first FROM)
@@ -19,6 +19,7 @@ def parse_sql_columns(sql_query):
         paren_count = 0
         in_quote = False
 
+        # Split tokens (words, quoted strings, parentheses, commas, etc.)
         tokens = re.findall(r"'[^']*'|\b[A-Za-z_]+\b|\S", clause)
 
         for token in tokens:
@@ -34,16 +35,19 @@ def parse_sql_columns(sql_query):
 
             current_column.append(token)
 
+            # If we're not in parentheses or quotes, a comma means end-of-column
             if paren_count == 0 and not in_quote and token == ',':
                 column_str = ' '.join(current_column[:-1]).strip()
                 columns.append(column_str)
                 current_column = []
 
+        # Handle whatever is left in current_column
         if current_column:
             columns.append(' '.join(current_column).strip().rstrip(','))
 
         return columns
 
+    # Build a list of dicts: {expression, alias}
     parsed_columns = []
     for column in split_columns(select_clause):
         alias_match = re.search(r'\s+([A-Za-z_][A-Za-z0-9_]*)$', column)
@@ -67,19 +71,23 @@ def parse_sql_columns(sql_query):
             })
     return parsed_columns
 
-
 def main():
     st.title("SQL Column Parser (re)")
-    sql_query = st.text_area("Enter your SQL query:", height=300)
 
-    if st.button("Parse Columns"):
+    # Use a form so that Ctrl+Enter will submit
+    with st.form("sql_form"):
+        sql_query = st.text_area("Enter your SQL query:", height=300)
+        parse_button = st.form_submit_button("Parse Columns")
+
+    # Only parse when the button (or Ctrl+Enter) is pressed
+    if parse_button:
         columns = parse_sql_columns(sql_query)
         if not columns:
             st.write("No columns found or invalid SQL SELECT statement.")
         else:
             # Convert the list of dicts to a DataFrame for tabular display
             df = pd.DataFrame(columns)
-            st.table(df)  # or st.dataframe(df) for a scrollable format
+            st.table(df)
 
 if __name__ == "__main__":
     main()
