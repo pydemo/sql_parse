@@ -71,13 +71,11 @@ def extract_columns_with_metadata(sql):
             source_table = source_column_match.group(1)  # Table alias
             source_column = source_column_match.group(2)  # Column name
         pp(alias)
-        if expression.endswith(f'.{source_column}'):
-            expression=''
         parsed_columns.append({
             'Source_Table': source_table,
             'Source_Column': source_column,
-            'Destination/Alias': alias if alias else source_column,
-            'Source_Expression': expression if alias else '',
+            'Destination': alias,
+            'Source_Expression': expression,
         })
 
     return parsed_columns
